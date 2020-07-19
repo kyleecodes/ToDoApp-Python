@@ -1,8 +1,53 @@
-<html lang="en">
+<html>
   <head>
     <title>Todo App</title>
+    <style>
+      .hidden {
+        display: none;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        width: 300px;
+      }
+      li {
+        clear: both;
+      }
+      li button {
+        -webkit-appearance: none;
+        border: none;
+        outline: none;
+        color: red;
+        float: right;
+        cursor: pointer;
+        font-size: 20px;
+      }
+      .lists-wrapper, .todos-wrapper {
+        display: inline-block;
+        vertical-align: top;
+      }
+    </style>
   </head>
   <body>
+    <div class="lists-wrapper">
+      <ul id="lists">
+        {% for list in lists %}
+        <li>
+          <a href="/lists/{{ list.id }}">
+            {{ list.name }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="todos-wrapper">
+      <h4>{{ active_list.name }}</h4>
+      <form id="form">
+        <input type="text" id="description" name="description" />
+        <input type="submit" value="Create" />
+      </form>
+      <div id="error" class="hidden">Something went wrong!</div>
       <ul id="todos">
         {% for todo in todos %}
         <li>
@@ -12,6 +57,7 @@
         </li>
         {% endfor %}
       </ul>
+    </div>
     <script>
       const deleteBtns = document.querySelectorAll('.delete-button');
       for (let i = 0; i < deleteBtns.length; i++) {
@@ -60,8 +106,11 @@
           body: JSON.stringify({
             'description': desc,
             'list_id': {{ active_list.id }}
-          })
-        }),
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
         .then(response => response.json())
         .then(jsonResponse => {
           const li = document.createElement('li');
