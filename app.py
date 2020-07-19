@@ -1,44 +1,60 @@
-from flask import Flask, render_template, request, redirect, url_for, abort, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
-import sys
 from flask_migrate import Migrate
+import sys
 
-# app.py is your server
-# creates an application names app (name of file) & configures database
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://postgres:Green@localhost:5432/postgres'
-
-# db.object, creates flask app object
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://kylee@localhost:5432/todoapp'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
-# initial migration
 migrate = Migrate(app, db)
 
 
-# MODEL class todoitem, inherits from db.model
-# give each a integer primary key
 class Todo(db.Model):
     __tablename__ = 'todos'
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
+    completed = db.Column(db.Boolean, nullable=False)
 
-    # debugging statement, prints id and description
     def __repr__(self):
         return f'<Todo {self.id} {self.description}>'
 
 
-# sync tables and models
-db.create_all()
+@app.route('/todos/<todo_id>', methods=['DELETE'])
+def delete_todo(todo_id):
+    try:
+        Todo.query.filter_by(id=todo_id).delete()
+        db.session.commit()
+    except:
+        db.session.rollback()
+    finally:
+        db.session.close()
+    return jsonify({'success': True})
 
 
-# request handler
-# @app.route('/todos/create', methods=['POST'])
-# def create_todo():
-#     description = request.form.get('description', '')
-#     todos = Todos(description=description)
-#     db.session.add(todos)
-#     db.session.commit()
-#     return redirect(url_for('index'))
+@app.route('/todos/create', methods=['POST'])
+def create_todo():
+    error = False
+    body = {}
+    try:
+        description = request.get_json()['description']
+        todo = Todo(description=description, completed=False)
+        db.session.add(todo)
+        db.session.commit()
+        body['id'] = todo.id
+        body['completed'] = todo.completed
+        body['description'] = todo.description
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error:
+        abort(400)
+    else:
+        return jsonify(body)
+
 
 @app.route('/todos/<todo_id>/set-completed', methods=['POST'])
 def set_completed_todo(todo_id):
@@ -55,8 +71,6 @@ def set_completed_todo(todo_id):
     return redirect(url_for('index'))
 
 
-# sets up a route that listens for our index (render_template)
-# processes templating using Jinja (allows non-html in html files)
 @app.route('/')
 def index():
-    return render_template('index.html', data=Todo.query.all())
+    return render_template('index.html', todos=Todo.query.order_by('id').all())
