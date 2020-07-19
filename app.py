@@ -40,26 +40,19 @@ db.create_all()
 #     db.session.commit()
 #     return redirect(url_for('index'))
 
-@app.route('/todos/create', methods=['POST'])
-def create_todo():
-    error = False
-    body = {}
+@app.route('/todos/<todo_id>/set-completed', methods=['POST'])
+def set_completed_todo(todo_id):
     try:
-        description = request.form.get_json()['description']
-        todo = Todo(description=description)
-        db.session.add(todo)
+        completed = request.get_json()['completed']
+        print('completed', completed)
+        todo = Todo.query.get(todo_id)
+        todo.completed = completed
         db.session.commit()
-        body['description'] = todo.description
     except:
-        error = True
         db.session.rollback()
-        print(sys.exc_info())
     finally:
         db.session.close()
-    if error:
-        abort(400)
-    else:
-        return jsonify(body)
+    return redirect(url_for('index'))
 
 
 # sets up a route that listens for our index (render_template)
