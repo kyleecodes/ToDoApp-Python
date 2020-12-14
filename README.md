@@ -1,5 +1,5 @@
 # To-Do App in Python
-A CRUD application utilizing the SQLAlchemy ORM, Flask, and migrations!
+A CRUD application utilizing the SQLAlchemy ORM, and Flask!
 
 ### Try it yourself!
 
